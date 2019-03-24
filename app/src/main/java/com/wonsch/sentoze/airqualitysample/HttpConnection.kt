@@ -1,34 +1,46 @@
 package com.wonsch.sentoze.airqualitysample
-
-import okhttp3.Callback
-import okhttp3.FormBody
+import android.os.AsyncTask
+import android.util.Log
+import com.google.gson.Gson
+import com.wonsch.sentoze.airqualitysample.dto.Model
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-class HttpConnection private constructor() {
+class HttpConnection(activity: MainActivity): AsyncTask<String, String, Model>() {
 
-    private val client: OkHttpClient
+    var activity: MainActivity? = null
 
     init {
-        this.client = OkHttpClient()
+        this.activity = activity
     }
 
+    var client = OkHttpClient()
+    var gson = Gson()
 
-    /** Web Server Requesting  */
-    fun requestWebServer(url: String, token: String, callback: Callback) {
-        val body = FormBody.Builder()
-            .add("token", token)
-            .build()
+    override fun doInBackground(vararg params: String): Model? {
         val request = Request.Builder()
-            .url(url)
-            .post(body)
+            .url(params[0])
+            .get()
             .build()
-        client.newCall(request).enqueue(callback)
+
+        try {
+            val response = client.newCall(request).execute()
+            val responseStr = response.body()!!.string()
+
+            Log.d("AirQualitySample", responseStr)
+
+            return gson.fromJson<Model>(responseStr, Model::class.java)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return null
     }
 
-    // for Single Tone Pattern
-    companion object {
-        val instance = HttpConnection()
+    override fun onPostExecute(result: Model?) {
+        super.onPostExecute(result)
+
+        activity!!.textOutput!!.text = gson.toJson(result)
     }
 }
-
